@@ -1,17 +1,21 @@
 #include <iostream>
 #include <vector>
+#include <ctime>
+#include <omp.h>
 
 const double EPS = 1E-9;
 
+int NUM_THREADS[] = {1, 2, 4, 8, 16, 32, 64, 128};
+int NUMBER_THREADS = 8;
 
-int rank(std::vector<std::vector<int>> &a) {
-    if (a.empty()) {
-        return 0;
-    }
-    int n = a.size(), m = a[0].size();
+int rank(int * a[], long long m, long long n) {
+//    if (a) {
+//        return 0;
+//    }
 
     int rank = std::max(n, m);
     std::vector<bool> line_used(n);
+
     for (int i = 0; i < m; ++i) {
         int j;
         for (j = 0; j < n; ++j)
@@ -21,8 +25,10 @@ int rank(std::vector<std::vector<int>> &a) {
             --rank;
         else {
             line_used[j] = true;
+            #pragma omp parallel for
             for (int p = i + 1; p < m; ++p)
                 a[j][p] /= a[j][i];
+            #pragma omp parallel for
             for (int k = 0; k < n; ++k)
                 if (k != j && abs(a[k][i]) > EPS)
                     for (int p = i + 1; p < m; ++p)
@@ -34,9 +40,31 @@ int rank(std::vector<std::vector<int>> &a) {
 
 
 int main() {
-    std::vector<std::vector<int>> a;
-    a = {{1, 2, 3, 4, 5,}, {2, 3, 4, 5, 1}, {1, 2, 3, 4, 5,}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}};
-    std::cout << rank(a);
+    //std::vector<std::vector<int>> a;
+    std::srand(std::time(nullptr));
+    // long long m = double (std::rand()) / RAND_MAX * 10000, n = double (std::rand()) / RAND_MAX * 1000;
+    long long m = 2000, n = 2000;
+    //a.resize(m);
+    std::cout << "Generating matrix with " << m << "x" << n << "..." << std::endl;
+    int** a = (int**)malloc(m * n * sizeof(int));
+    for (long long i = 0; i < m; ++i) {
+
+        a[i] = (int*)malloc(n * sizeof(int));
+        int tmp[n];
+        for (long long j = 0; j < n; ++j) {
+            a[i][j] = std::rand();
+        }
+    }
+    #pragma omp barrier
+    for (int i = 0; i < NUMBER_THREADS; ++i) {
+
+    }
+    double start_time = omp_get_wtime();
+    std::cout << "Matrix generated. Counting rank..." << std::endl;
+    //std::cout << rank(a, n, m);
+    std::cout << rank(reinterpret_cast<int **>(reinterpret_cast<int *>(a)), m, n) << std::endl;
+    std::cout << "Computation took " << omp_get_wtime() - start_time << " seconds to complete" << std::endl;
+
 
     return 0;
 }
