@@ -6,8 +6,8 @@
 
 const double EPS = 1E-9;
 
-int NUM_THREADS[] = {1, 2, 4, 8, 16, 32, 64, 128};
-int NUMBER_THREADS = 8;
+int NUM_THREADS[] = {1, 2, 4, 8, 16, 32, 64};
+int NUMBER_THREADS = 7;
 
 int rank(int * a[], long long m, long long n) {
 //    if (a) {
