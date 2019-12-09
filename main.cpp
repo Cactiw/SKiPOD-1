@@ -2,6 +2,7 @@
 #include <vector>
 #include <ctime>
 #include <omp.h>
+#include <random>
 
 const double EPS = 1E-9;
 
@@ -41,7 +42,8 @@ int rank(int * a[], long long m, long long n) {
 
 int main() {
     //std::vector<std::vector<int>> a;
-    std::srand(std::time(nullptr));
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution(0,2000);
     // long long m = double (std::rand()) / RAND_MAX * 10000, n = double (std::rand()) / RAND_MAX * 1000;
     long long m = 2000, n = 2000;
     //a.resize(m);
@@ -51,7 +53,7 @@ int main() {
 
         a[i] = (int*)malloc(n * sizeof(int));
         for (long long j = 0; j < n; ++j) {
-            a[i][j] = std::rand();
+            a[i][j] = distribution(generator);
         }
     }
     std::cout << "Matrix generated." << std::endl;
