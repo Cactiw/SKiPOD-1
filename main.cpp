@@ -50,21 +50,27 @@ int main() {
     for (long long i = 0; i < m; ++i) {
 
         a[i] = (int*)malloc(n * sizeof(int));
-        int tmp[n];
         for (long long j = 0; j < n; ++j) {
             a[i][j] = std::rand();
         }
     }
+    std::cout << "Matrix generated." << std::endl;
     #pragma omp barrier
     for (int i = 0; i < NUMBER_THREADS; ++i) {
         omp_set_num_threads(NUM_THREADS[i]);
         double start_time = omp_get_wtime();
-        std::cout << "Matrix generated. Counting rank with " << NUM_THREADS[i] << " threads ..." << std::endl;
+        std::cout << "Counting rank with " << NUM_THREADS[i] << " threads ..." << std::endl;
         //std::cout << rank(a, n, m);
         std::cout << rank(reinterpret_cast<int **>(reinterpret_cast<int *>(a)), m, n) << std::endl;
         std::cout << "Computation took " << omp_get_wtime() - start_time << " seconds to complete" << std::endl;
-
+        #pragma omp barrier
     }
+    std::cout << "Freeing memory..." << std::endl;
+    for (int i = 0; i < m; ++i) {
+        free(a[i]);
+    }
+    free(a);
+    std::cout << "Memory freed" << std::endl;
 
     return 0;
 }
