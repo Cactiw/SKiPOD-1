@@ -15,27 +15,27 @@ int NUMBER_THREADS = 7;
 int SIZES[] = {4, 128, 256, 512, 1024, 2048, 4096};
 int SIZES_NUM = 6;
 
-void print_matrix(int *a[], long long m, long long n) {
+void print_matrix(int *a, long long m, long long n) {
     for (long long i = 0; i < m; ++i) {
         for (long long j = 0; j < n; ++j) {
-            std::cout << a[i][j] << " ";
+            std::cout << a[i * j + j] << " ";
         }
         std::cout << std::endl;
     }
 }
 
-int count_rank(int *a[], long long m, long long n, int curr_proc, int proc_num) {
+int count_rank(int *a, long long m, long long n, int curr_proc, int proc_num) {
 //    if (a) {
 //        return 0;
 //    }
-    std::cout << proc_num << " " << curr_proc << std::endl;
+    //std::cout << proc_num << " " << curr_proc << std::endl;
     int rank = std::max(n, m);
     std::vector<bool> line_used(n);
 
     for (int i = 0; i < m; ++i) {
         int j;
         for (j = 0; j < n; ++j)
-            if (!line_used[j] && abs(a[j][i]) > EPS)
+            if (!line_used[j] && abs(a[j * i + i]) > EPS)
                 break;
         if (j == n)
             --rank;
@@ -58,7 +58,7 @@ int count_rank(int *a[], long long m, long long n, int curr_proc, int proc_num) 
                 }
             }
             for (int p = displs[curr_proc]; p < displs[curr_proc] + recvcounts[curr_proc]; ++p)
-                a[j][p] /= a[j][i];
+                a[j * p + p] /= a[j * i + i];
             //auto buf = (int *) malloc(m * n * sizeof(int));
             //std::cout << "Initializing first gather..." << std::endl;
             //print_matrix(a, m, n);
@@ -71,9 +71,9 @@ int count_rank(int *a[], long long m, long long n, int curr_proc, int proc_num) 
             //std::cout << process * curr_proc << " " << process * curr_proc + process << std::endl;
             for (int k = process * curr_proc; k < process * curr_proc + process; ++k) {
                 //std::cout << k << std::endl;
-                if (k != j && abs(a[k][i]) > EPS)
+                if (k != j && abs(a[k * i + i]) > EPS)
                     for (int p = i + 1; p < m; ++p)
-                        a[k][p] -= a[j][p] * a[k][i];
+                        a[k * p + p] -= a[j * p + p] * a[k * i + i];
             }
             //std::cout << "Initializing second gather..." << std::endl;
             MPI_Allgather(&a[curr_proc * process], process, MPI_INT, a, process, MPI_INT, MPI_COMM_WORLD);
@@ -100,39 +100,38 @@ int main(int argc, char **argv) {
 
     for (int z = 0; z < SIZES_NUM; ++z) {
         long long m = SIZES[z], n = SIZES[z];
-        //a.resize(m);
         std::cout << "Generating matrix with " << m << "x" << n << "..." << std::endl;
-        int **a = (int **) malloc(m * n * sizeof(int*) + MPI_BSEND_OVERHEAD);
+        int *a = (int *) malloc(m * n * sizeof(int) + MPI_BSEND_OVERHEAD);
         for (long long i = 0; i < m; ++i) {
-            a[i] = (int *) malloc(n * sizeof(int));
+//            a[i] = (int *) malloc(n * sizeof(int));
             if (rank == 0) {
                 for (long long j = 0; j < n; ++j) {
-                    a[i][j] = distribution(generator);
+                    a[i * j + j] = distribution(generator);
                 }
             }
         }
-        std::cout << "Matrix generated." << std::endl;
-        if (rank == 0)
-            print_matrix(a, m, n);
+        //std::cout << "Matrix generated." << std::endl;
+//        if (rank == 0)
+//            print_matrix(a, m, n);
         MPI_Barrier(MPI_COMM_WORLD);
         MPI_Bcast(a, n * m, MPI_INT, 0, MPI_COMM_WORLD);
         //MPI_Scatter(a, n * m, MPI_INT, a, n * m, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Barrier(MPI_COMM_WORLD);
-        std::cout << "Matrix broadcasted." << std::endl;
-        if (rank != 0)
-            print_matrix(a, m, n);
+        //std::cout << "Matrix broadcasted." << std::endl;
+//        if (rank != 0)
+//            print_matrix(a, m, n);
         MPI_Barrier(MPI_COMM_WORLD);
 
         double start_time = MPI_Wtime();
         std::cout << "Counting rank with " << numtasks << " threads ..." << std::endl;
         //std::cout << rank(a, n, m);
-        std::cout << count_rank(reinterpret_cast<int **>(reinterpret_cast<int *>(a)), m, n, rank, numtasks)
+        std::cout << count_rank(a, m, n, rank, numtasks)
                   << std::endl;
         std::cout << "Computation took " << MPI_Wtime() - start_time << " seconds to complete" << std::endl;
         MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "Freeing memory..." << std::endl;
         for (int i = 0; i < m; ++i) {
-            free(a[i]);
+//            free(a[i]);
         }
         free(a);
         std::cout << "Memory freed" << std::endl;
