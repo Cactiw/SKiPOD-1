@@ -12,7 +12,7 @@ const double EPS = 1E-9;
 
 int NUM_THREADS[] = {1, 2, 4, 8, 16, 32, 64};
 int NUMBER_THREADS = 7;
-int SIZES[] = {4, 128, 256, 512, 1024, 2048, 4096};
+int SIZES[] = {128, 256, 512, 1024, 2048, 4096};
 int SIZES_NUM = 6;
 
 void print_matrix(int *a, long long m, long long n) {
@@ -100,7 +100,9 @@ int main(int argc, char **argv) {
 
     for (int z = 0; z < SIZES_NUM; ++z) {
         long long m = SIZES[z], n = SIZES[z];
-        std::cout << "Generating matrix with " << m << "x" << n << "..." << std::endl;
+        if (rank == 0) {
+            std::cout << "Generating matrix with " << m << "x" << n << "..." << std::endl;
+        }
         int *a = (int *) malloc(m * n * sizeof(int) + MPI_BSEND_OVERHEAD);
         for (long long i = 0; i < m; ++i) {
 //            a[i] = (int *) malloc(n * sizeof(int));
@@ -123,18 +125,16 @@ int main(int argc, char **argv) {
         MPI_Barrier(MPI_COMM_WORLD);
 
         double start_time = MPI_Wtime();
-        std::cout << "Counting rank with " << numtasks << " threads ..." << std::endl;
-        //std::cout << rank(a, n, m);
-        std::cout << count_rank(a, m, n, rank, numtasks)
-                  << std::endl;
-        std::cout << "Computation took " << MPI_Wtime() - start_time << " seconds to complete" << std::endl;
+        if (rank == 0) {
+            std::cout << "Counting rank with " << numtasks << " threads ..." << std::endl;
+            std::cout << count_rank(a, m, n, rank, numtasks) << std::endl;
+            std::cout << "Computation took " << MPI_Wtime() - start_time << " seconds to complete" << std::endl;
+        }
         MPI_Barrier(MPI_COMM_WORLD);
-        std::cout << "Freeing memory..." << std::endl;
         for (int i = 0; i < m; ++i) {
 //            free(a[i]);
         }
         free(a);
-        std::cout << "Memory freed" << std::endl;
     }
 
     MPI_Finalize();
