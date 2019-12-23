@@ -56,7 +56,6 @@ int count_rank(int *a, long long m, long long n, int curr_proc, int proc_num) {
             for (int p = displs[curr_proc]; p < displs[curr_proc] + recvcounts[curr_proc]; ++p)
                 a[j * p + p] /= a[j * i + i];
             MPI_Allgatherv(&a[displs[curr_proc]], recvcounts[curr_proc], MPI_INT, a, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
-            MPI_Barrier(MPI_COMM_WORLD);
             process = n / proc_num;
             for (int k = process * curr_proc; k < process * curr_proc + process; ++k) {
                 if (k != j && abs(a[k * i + i]) > EPS)
@@ -64,7 +63,6 @@ int count_rank(int *a, long long m, long long n, int curr_proc, int proc_num) {
                         a[k * p + p] -= a[j * p + p] * a[k * i + i];
             }
             MPI_Allgather(&a[curr_proc * process], process, MPI_INT, a, process, MPI_INT, MPI_COMM_WORLD);
-            MPI_Barrier(MPI_COMM_WORLD);
         }
     }
     return rank;
@@ -97,10 +95,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        MPI_Barrier(MPI_COMM_WORLD);
         MPI_Bcast(a, n * m, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Barrier(MPI_COMM_WORLD);
-        MPI_Barrier(MPI_COMM_WORLD);
 
         double start_time = MPI_Wtime();
         if (rank == 0) {
@@ -108,7 +103,6 @@ int main(int argc, char **argv) {
             std::cout << count_rank(a, m, n, rank, numtasks) << std::endl;
             std::cout << "Computation took " << MPI_Wtime() - start_time << " seconds to complete" << std::endl;
         }
-        MPI_Barrier(MPI_COMM_WORLD);
         free(a);
     }
 
